@@ -6,6 +6,9 @@ services:
     container_name: mysql_container
     command: --default-authentication-plugin=mysql_native_password --bind-address=0.0.0.0
     restart: unless-stopped
+    volumes:
+      - ./dbinit/init.sql:/docker-entrypoint-initdb.d/init.sql 
+      - mysql_data:/var/lib/mysql
     ports:
       - 3306:3306
     expose:
@@ -67,3 +70,6 @@ services:
 networks:
   app_network:
     driver: bridge
+
+volumes:
+  mysql_data:
