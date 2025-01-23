@@ -32,12 +32,12 @@ jobs:
 
     - name: Build and Start Services
       run: |
-        docker-compose -f docker-compose.yml up --build -d
+        docker-compose --env-file .env -f docker-compose.yml up --build -d
 
     - name: Wait for Services to be Healthy
       run: |
         echo "Waiting for services to be healthy..."
-        sleep 60  # Adjust this based on service startup time
+        sleep 60
 
     - name: Verify Services
       run: |
