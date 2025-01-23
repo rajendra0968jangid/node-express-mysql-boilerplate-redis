@@ -58,6 +58,12 @@ services:
       - 6379
     env_file:
       - .env
+    entrypoint: >
+      sh -c "if [ '${REDIS_USE_PASSWORD}' = 'mysecretpassword' ]; then
+              redis-server --requirepass ${REDIS_PASSWORD};
+            else
+              redis-server;
+            fi"  
     networks:
       - app_network
     healthcheck:
