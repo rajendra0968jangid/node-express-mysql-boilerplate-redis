@@ -10,24 +10,28 @@ jobs:
 
   deploy:
     runs-on: self-hosted
+    strategy:
+      matrix:
+        attempt: [1, 2, 3]
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Install Docker Compose
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y docker-compose
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
-    - name: Pull Latest Docker Images
-      run: |
-        docker-compose pull
+      - name: Pull Latest Docker Images
+        run: |
+          docker-compose pull
 
-    - name: Stop and Remove Old Containers
-      run: |
-        docker-compose down
+      - name: Stop and Remove Old Containers
+        run: |
+          docker-compose down
 
-    - name: Start New Containers
-      run: |
-        docker-compose up -d
+      - name: Start New Containers
+        run: |
+          docker-compose up -d
+        continue-on-error: ${{ matrix.attempt != 3 }}
