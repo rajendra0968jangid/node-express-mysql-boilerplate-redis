@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build-test:
@@ -29,13 +26,21 @@ jobs:
       run: |
         docker-compose -f docker-compose.yml up --build -d
 
-    - name: Wait for Services to be Healthy
+    - name: Wait for MySQL and Redis Services
       run: |
-        sleep 30  # Adjust the duration based on service startup time
+        echo "Waiting for services to be healthy..."
+        sleep 60  # Adjust this based on your healthcheck intervals
 
-    - name: Run Application Tests
+    - name: Verify MySQL Service
       run: |
-        # Replace with actual tests or commands to verify services
+        docker exec mysql_container mysqladmin ping -h localhost -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }}
+
+    - name: Verify Redis Service
+      run: |
+        docker exec redis_container redis-cli -a ${REDIS_PASSWORD:-""} ping
+
+    - name: Run Node Application Tests
+      run: |
         curl -f http://localhost:5000 || exit 1
 
     - name: Shut Down Services
