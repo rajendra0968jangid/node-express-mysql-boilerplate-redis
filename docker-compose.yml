@@ -24,24 +24,26 @@ services:
       - app_network
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${DB_USER} -p${DB_PASS} || exit 1"]
-      interval: 20s
+      interval: 10s
       retries: 5
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    container_name: phpmyadmin
-    restart: unless-stopped
+  node:
+    image: rajendra0968/mysql-express:latest
+    container_name: node_app
+    working_dir: /usr/src/app
+    networks:
+      - app_network
     ports:
-      - "8080:80"
-    environment:
-      PMA_HOST: mysqldb
-      PMA_USER: ${DB_USER}
-      PMA_PASSWORD: ${DB_PASS}
+      - "5000:5000"
     depends_on:
       mysqldb:
         condition: service_healthy
-    networks:
-      - app_network 
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DB_HOST: mysqldb
 
   redis:
     image: redis:latest
@@ -65,29 +67,22 @@ services:
       test: ["CMD", "redis-cli", "-h", "localhost", "-p", "6379", "ping"]
       interval: 10s
       retries: 5
-    depends_on:
-      mysqldb:
-        condition: service_healthy
 
-  node:
-    image: rajendra0968/mysql-express:latest
-    container_name: node_app
-    working_dir: /usr/src/app
-    networks:
-      - app_network
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "8080:80"
+    environment:
+      PMA_HOST: mysqldb
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASS}
     depends_on:
       mysqldb:
         condition: service_healthy
-      phpmyadmin:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    env_file:
-      - .env
-    environment:
-      DB_HOST: mysqldb
+    networks:
+      - app_network      
 
 networks:
   app_network:
