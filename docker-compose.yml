@@ -24,7 +24,7 @@ services:
       - app_network
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${DB_USER} -p${DB_PASS} || exit 1"]
-      interval: 10s
+      interval: 20s
       retries: 5
 
   node:
