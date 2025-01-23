@@ -12,7 +12,7 @@ jobs:
     runs-on: self-hosted
     strategy:
       matrix:
-        attempt: [1, 2] 
+        attempt: [1, 2, 3]
 
     steps:
       - name: Checkout Repository
@@ -27,11 +27,31 @@ jobs:
         run: |
           docker-compose pull
 
-      - name: Stop and Remove Old Containers
+      - name: Stop Specific Containers
         run: |
-          docker-compose down
+          # Define the service to update (pass this via secrets or environment variables)
+          SERVICE_TO_UPDATE=${{ secrets.UPDATE_SERVICE }}
 
-      - name: Start New Containers
+          if [ -z "$SERVICE_TO_UPDATE" ]; then
+            echo "No specific service specified. Skipping container stop."
+          else
+            echo "Stopping only the specified service(s): $SERVICE_TO_UPDATE"
+            for service in $SERVICE_TO_UPDATE; do
+              echo "Stopping container for service: $service"
+              docker-compose stop $service || echo "Service $service is not running."
+            done
+          fi
+
+      - name: Start Specific Containers
         run: |
-          docker-compose up -d
-        continue-on-error: ${{ matrix.attempt == 1 }}
+          # Define the service to update (pass this via secrets or environment variables)
+          SERVICE_TO_UPDATE=${{ secrets.UPDATE_SERVICE }}
+
+          if [ -z "$SERVICE_TO_UPDATE" ]; then
+            echo "No specific service specified. Starting all services..."
+            docker-compose up -d
+          else
+            echo "Starting the specified service(s): $SERVICE_TO_UPDATE"
+            docker-compose up -d $SERVICE_TO_UPDATE
+          fi
+        continue-on-error: ${{ matrix.attempt != 3 }}
