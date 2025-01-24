@@ -1,92 +1,53 @@
-version: '3.9'
+name: CD Pipeline
 
-services:
-  mysqldb:
-    image: mysql:8.0
-    container_name: mysql_container
-    command: --default-authentication-plugin=mysql_native_password --bind-address=0.0.0.0
-    restart: unless-stopped
-    volumes:
-      - ./dbinit/init.sql:/docker-entrypoint-initdb.d/init.sql 
-      - mysql_data:/var/lib/mysql
-    ports:
-      - 3306:3306
-    expose:
-      - 3306
-    env_file:
-      - .env
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASS}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASS}
-    networks:
-      - app_network
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${DB_USER} -p${DB_PASS} || exit 1"]
-      interval: 20s
-      retries: 5
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
 
-  node:
-    image: rajendra0968/mysql-express:latest
-    container_name: node_app
-    working_dir: /usr/src/app
-    networks:
-      - app_network
-    ports:
-      - "5000:5000"
-    depends_on:
-      mysqldb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    env_file:
-      - .env
-    environment:
-      DB_HOST: mysqldb
+jobs:
 
-  redis:
-    image: redis:latest
-    container_name: redis_container
-    command: >
-      sh -c "if [ -n '${REDIS_PASSWORD}' ]; then
-                redis-server --requirepass ${REDIS_PASSWORD};
-              else
-                redis-server;
-              fi"
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    expose:
-      - 6379
-    env_file:
-      - .env
-    networks:
-      - app_network
-    healthcheck:
-      test: ["CMD", "redis-cli", "-h", "localhost", "-p", "6379", "ping"]
-      interval: 10s
-      retries: 5
+  deploy:
+    runs-on: self-hosted
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    container_name: phpmyadmin
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    environment:
-      PMA_HOST: mysqldb
-      PMA_USER: ${DB_USER}
-      PMA_PASSWORD: ${DB_PASS}
-    depends_on:
-      mysqldb:
-        condition: service_healthy
-    networks:
-      - app_network      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-networks:
-  app_network:
-    driver: bridge
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
-volumes:
-  mysql_data:
+      - name: Pull Latest Docker Images
+        run: |
+          docker-compose pull
+
+      - name: Stop Specific Containers
+        run: |
+          # Define the service to update (pass this via secrets or environment variables)
+          SERVICE_TO_UPDATE=${{ secrets.UPDATE_SERVICE }}
+
+          if [ -z "$SERVICE_TO_UPDATE" ]; then
+            echo "No specific service specified. Skipping container stop."
+          else
+            echo "Stopping only the specified service(s): $SERVICE_TO_UPDATE"
+            for service in $SERVICE_TO_UPDATE; do
+              echo "Stopping container for service: $service"
+              docker-compose stop $service || echo "Service $service is not running."
+            done
+          fi
+
+      - name: Start Specific Containers
+        run: |
+          # Define the service to update (pass this via secrets or environment variables)
+          SERVICE_TO_UPDATE=${{ secrets.UPDATE_SERVICE }}
+
+          if [ -z "$SERVICE_TO_UPDATE" ]; then
+            echo "No specific service specified. Starting all services..."
+            docker-compose up -d
+          else
+            echo "Starting the specified service(s): $SERVICE_TO_UPDATE"
+            docker-compose up -d $SERVICE_TO_UPDATE
+          fi
