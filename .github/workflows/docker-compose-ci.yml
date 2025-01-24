@@ -10,9 +10,6 @@ jobs:
 
   deploy:
     runs-on: self-hosted
-    strategy:
-      matrix:
-        attempt: [1, 2, 3]
 
     steps:
       - name: Checkout Repository
@@ -54,4 +51,3 @@ jobs:
             echo "Starting the specified service(s): $SERVICE_TO_UPDATE"
             docker-compose up -d $SERVICE_TO_UPDATE
           fi
-        continue-on-error: ${{ matrix.attempt != 3 }}
