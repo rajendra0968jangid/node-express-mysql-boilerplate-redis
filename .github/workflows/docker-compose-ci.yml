@@ -22,7 +22,18 @@ jobs:
 
       - name: Pull Latest Docker Images
         run: |
-          docker-compose pull
+          # Define the service to update (pass this via secrets or environment variables)
+          SERVICE_TO_UPDATE=${{ secrets.UPDATE_SERVICE }}
+
+          if [ -z "$SERVICE_TO_UPDATE" ]; then
+            echo "No specific service specified. Skipping image pull."
+          else
+            echo "Pulling images for the specified service(s): $SERVICE_TO_UPDATE"
+            for service in $SERVICE_TO_UPDATE; do
+              echo "Pulling image for service: $service"
+              docker-compose pull $service
+            done
+          fi
 
       - name: Stop Specific Containers
         run: |
